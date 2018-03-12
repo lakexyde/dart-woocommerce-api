@@ -120,28 +120,15 @@ class WooCommerceAPI{
     return tokens;
   }
 
-  join(){
-
-  }
-
-  String request(String method, String endpoint, Map data, Function callback){
+  Future<List> request(String method, String endpoint, Map data, Function callback) async{
     var url = this.getUrl(endpoint);
-
-    // http.BaseRequest(); ({
-    //   "uri": url,
-    //   "method": method,
-    //   "headers": {
-    //     'User-Agent': 'WooCommerce API Flutter/' + this.classVersion,
-    //     'Content-Type': 'application/json',
-    //     'Accept': 'application/json'
-    //   }
-    // });
 
     var tokens = this.getTokens();
 
     http.Request r = new http.Request(method, Uri.parse(url));
     var nonce = getRandomBytes(8);
     String nonceStr = _base64.encode(nonce);
+    
 
     var params = generateParameters(r, tokens, nonceStr, new DateTime.now().millisecondsSinceEpoch ~/ 1000);
 
@@ -156,30 +143,22 @@ class WooCommerceAPI{
       print(requestUrl);
     }
 
-    return requestUrl;
+    var basicAuthHeader = BASE64.encode(UTF8.encode("${this.consumerKey}:${this.consumerSecret}"));
+
+    var httpClient = new HttpClient();
+    var request = await httpClient.openUrl(method, Uri.parse(requestUrl));
+    request.headers.contentType = new ContentType("application", "json", charset: "utf-8");
+    request.headers.set(HttpHeaders.CACHE_CONTROL, 'no-cache');
+    request.headers.set(HttpHeaders.AUTHORIZATION, 'Basic ' + basicAuthHeader);
+    var response = await request.close();
+    var responseBody = await response.transform(UTF8.decoder).join();
+    var dataResponse = await JSON.decode(responseBody);
+    return dataResponse;
+    
   }
 
-  Future get(String endpoint,{Map data, Function callback}) async{
-    var reqUrl = this.request("GET", endpoint, data, callback);
-
-    HttpClient client = new HttpClient();
-    client.openUrl("GET", Uri.parse(reqUrl))
-    .then((HttpClientRequest request) {
-      request.headers.contentType
-        = new ContentType("application", "json", charset: "utf-8");
-      request.headers.set(HttpHeaders.CACHE_CONTROL,
-                    'no-cache');
-      return request.close();
-    })
-    .then((HttpClientResponse response) {
-      response.transform(UTF8.decoder).listen((contents) {
-         print(contents);
-       });
-      
-    }).catchError((err){
-       print(err);
-    });
-    
+  Future<List> get(String endpoint,{Map data, Function callback}){
+    return this.request("GET", endpoint, data, callback);
   }
 
 }
