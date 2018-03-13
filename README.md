@@ -13,9 +13,9 @@ Still a work in progress.
 - Create a instance of the WooCommerceAPI class and include your parameters;
 ```
 Map<String,dynamic> params = {
-  "url": 'http://buyryte.com',
-  "consumerKey": "ck_77e35e94ad15a7e67056c0d6e840f95548d2946c",
-  "consumerSecret": "cs_7faa7dcf9fa507e94db6064ccb7704b7a578dc9d",
+  "url": 'http://example.com',
+  "consumerKey": "ck_xxxxxxxxxxxxxxxxxxx",
+  "consumerSecret": "cs_xxxxxxxxxxxxxxxxxx",
   "wpAPI": true,
   "version": 'wc/v2'
 };
