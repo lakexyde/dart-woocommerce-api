@@ -1,14 +1,9 @@
-import 'package:oauth/oauth.dart';
-import 'package:oauth/src/utils.dart';
-import 'package:oauth/src/token.dart';
 import 'dart:async';
-import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:io';
 
-const Base64Codec _base64 = const Base64Codec();
-
 class WooCommerceAPI{
+
   String url;
   bool wpApi;
   String wpApiPrefix;
@@ -33,15 +28,6 @@ class WooCommerceAPI{
     this.setDefaultOptions(opt);
   }
 
-  String theAPiUrl(){
-    if(this.wpApi){
-      var t = this.wpApiPrefix + '/';
-      return t;
-    } else {
-      return "wp-json/";
-    }
-  }
-
   void setDefaultOptions(Map<String,dynamic> opt){
     this.url = opt['url'];
     this.wpApi = opt['wpApi'] ?? false;
@@ -55,6 +41,15 @@ class WooCommerceAPI{
     this.queryStringAuth = opt['queryStringAuth'] ?? false;
     this.port = opt['port'] ?? '';
 	  this.timeout = opt['timeout'];
+  }
+
+  String theAPiUrl(){
+    if(this.wpApi){
+      var t = this.wpApiPrefix + '/';
+      return t;
+    } else {
+      return "wp-json/";
+    }
   }
 
   String normalizeQueryString(String url){
@@ -84,9 +79,6 @@ class WooCommerceAPI{
   }
 
   String composeQueryString(Map data){
-    if(data.containsKey('oauth_signature')){
-      data['oauth_signature'] = Uri.encodeComponent( data['oauth_signature']);
-    }
     var params = [];
     data.forEach((key, value){
       params.add("$key=$value");
@@ -114,34 +106,13 @@ class WooCommerceAPI{
     return url;
   }
 
-  Tokens getTokens(){
-    Tokens tokens = new Tokens(consumerId: this.consumerKey, consumerKey: this.consumerSecret, userId: this.consumerKey, userKey: this.consumerSecret, type: "HMAC-SHA1");
-
-    return tokens;
-  }
-
-  Future<List> request(String method, String endpoint, Map data, Function callback) async{
+  Future request(String method, String endpoint, Map data) async{
     var url = this.getUrl(endpoint);
 
-    var tokens = this.getTokens();
-
-    http.Request r = new http.Request(method, Uri.parse(url));
-    var nonce = getRandomBytes(8);
-    String nonceStr = _base64.encode(nonce);
-    
-
-    var params = generateParameters(r, tokens, nonceStr, new DateTime.now().millisecondsSinceEpoch ~/ 1000);
-
-    var t = composeQueryString(params);
+    var t = composeQueryString(data);
 
     var requestUrl = url + "?" + t;
-
-    //Extra data for paging
-    if(data != null && data.isNotEmpty){
-      var q = composeQueryString(data);
-      requestUrl += "&"+ q;
-      print(requestUrl);
-    }
+    print(requestUrl);
 
     var basicAuthHeader = BASE64.encode(UTF8.encode("${this.consumerKey}:${this.consumerSecret}"));
 
@@ -154,11 +125,25 @@ class WooCommerceAPI{
     var responseBody = await response.transform(UTF8.decoder).join();
     var dataResponse = await JSON.decode(responseBody);
     return dataResponse;
-    
   }
 
-  Future<List> get(String endpoint,{Map data, Function callback}){
-    return this.request("GET", endpoint, data, callback);
+
+  Future<List> get(String endpoint, Map data){
+    return this.request("GET", endpoint, data);
   }
 
+  // To be implemented
+  Future post(String endpoint,{Map data}){
+    return this.request("POST", endpoint, data);
+  }
+
+  // To be implemented
+  Future put(String endpoint,{Map data}){
+    return this.request("PUT", endpoint, data);
+  }
+
+  // To be implemented
+  Future delete(String endpoint,{Map data}){
+    return this.request("DELETE", endpoint, data);
+  }
 }
