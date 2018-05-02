@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:http/http.dart' as http;
+
 class WooCommerceAPI{
 
   String url;
@@ -69,7 +71,7 @@ class WooCommerceAPI{
       if(queryString.length > 0){
         queryString += '&';
       }
-      queryString += Uri.encodeComponent(i).replaceAll('%5B', '[')
+      queryString += Uri.encodeComponent(i).replaceAll('[','%5B')
       .replaceAll('%5D', ']');
       queryString += '=';
       queryString += Uri.encodeComponent(query[i]);
@@ -83,8 +85,8 @@ class WooCommerceAPI{
     data.forEach((key, value){
       params.add("$key=$value");
     });
-
     return params.join("&");
+    // .replaceAll('[','%5B').replaceAll(']','%5D');
   }
 
   String getUrl(String endpoint){
@@ -106,15 +108,35 @@ class WooCommerceAPI{
     return url;
   }
 
+  Uri composeUrl(String endpoint, Map data){
+    String _scheme = Uri.parse(this.url).scheme;
+    String _host = Uri.parse(this.url).host;
+    int _port = Uri.parse(this.url).port ?? 8080;
+    String _queryString = composeQueryString(data);
+    String _path = this.theAPiUrl() + this.version + '/' + endpoint;
+  
+    Uri _uri = new Uri(
+      scheme: _scheme,
+      host: _host,
+      port: _port,
+      path: _path,
+      query: _queryString
+    );
+
+    return _uri;
+  }
+
   Future request(String method, String endpoint, Map data) async{
     var url = this.getUrl(endpoint);
 
     var t = composeQueryString(data);
 
-    var requestUrl = url + "?" + t;
+    var _rq = url + "?" + t;
+
+    var requestUrl = Uri.encodeFull(_rq);
     print(requestUrl);
 
-    var basicAuthHeader = BASE64.encode(UTF8.encode("${this.consumerKey}:${this.consumerSecret}"));
+    var basicAuthHeader = base64.encode(utf8.encode("${this.consumerKey}:${this.consumerSecret}"));
 
     var httpClient = new HttpClient();
     var request = await httpClient.openUrl(method, Uri.parse(requestUrl));
@@ -122,13 +144,13 @@ class WooCommerceAPI{
     request.headers.set(HttpHeaders.CACHE_CONTROL, 'no-cache');
     request.headers.set(HttpHeaders.AUTHORIZATION, 'Basic ' + basicAuthHeader);
     var response = await request.close();
-    var responseBody = await response.transform(UTF8.decoder).join();
-    var dataResponse = await JSON.decode(responseBody);
+    var responseBody = await response.transform(utf8.decoder).join();
+    var dataResponse = await json.decode(responseBody);
     return dataResponse;
   }
 
 
-  Future<List> get(String endpoint, Map data){
+  Future get(String endpoint, Map data){
     return this.request("GET", endpoint, data);
   }
 
