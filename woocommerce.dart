@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-
 import 'package:http/http.dart' as http;
 
 class WooCommerceAPI{
@@ -126,6 +125,11 @@ class WooCommerceAPI{
     return _uri;
   }
 
+  String authHeader(){
+    var basicAuthHeader = base64.encode(utf8.encode("${this.consumerKey}:${this.consumerSecret}"));
+    return basicAuthHeader;
+  }
+
   Future request(String method, String endpoint, Map data) async{
     var url = this.getUrl(endpoint);
 
@@ -154,17 +158,38 @@ class WooCommerceAPI{
     return this.request("GET", endpoint, data);
   }
 
-  // To be implemented
-  Future post(String endpoint,{Map data}){
-    return this.request("POST", endpoint, data);
+  Future post(String endpoint, Map data) async{
+    String _authHeader = authHeader();
+    var url = this.getUrl(endpoint);
+
+    var client = new http.Client();
+    var request = new http.Request('POST', Uri.parse(url));
+    request.headers[HttpHeaders.CONTENT_TYPE] = 'application/json; charset=utf-8';
+    request.headers[HttpHeaders.AUTHORIZATION] = "Basic $_authHeader";
+    request.headers[HttpHeaders.CACHE_CONTROL] = "no-cache";
+    request.body = json.encode(data);
+    var response = await client.send(request).then((res) => res.stream.bytesToString());
+    var dataResponse = await json.decode(response);
+    return dataResponse;
   }
 
-  // To be implemented
-  Future put(String endpoint,{Map data}){
-    return this.request("PUT", endpoint, data);
+  Future put(String endpoint, Map data) async{
+    String _authHeader = authHeader();
+    var url = this.getUrl(endpoint);
+
+    var client = new http.Client();
+    var request = new http.Request('PUT', Uri.parse(url));
+    request.headers[HttpHeaders.CONTENT_TYPE] = 'application/json; charset=utf-8';
+    request.headers[HttpHeaders.AUTHORIZATION] = "Basic $_authHeader";
+    request.headers[HttpHeaders.CACHE_CONTROL] = "no-cache";
+    request.body = json.encode(data);
+    var response = await client.send(request).then((res) => res.stream.bytesToString());
+    var dataResponse = await json.decode(response);
+    print(dataResponse);
+    return dataResponse;
+
   }
 
-  // To be implemented
   Future delete(String endpoint,{Map data}){
     return this.request("DELETE", endpoint, data);
   }
