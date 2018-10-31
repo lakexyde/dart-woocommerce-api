@@ -80,6 +80,7 @@ class WooCommerceAPI{
   }
 
   String composeQueryString(Map data){
+    if(data == null) return "";
     var params = [];
     data.forEach((key, value){
       params.add("$key=$value");
@@ -130,23 +131,25 @@ class WooCommerceAPI{
     return basicAuthHeader;
   }
 
-  Future request(String method, String endpoint, Map data) async{
+  String _composeKeys(){
+    String _k = "consumer_key=$consumerKey&consumer_secret=$consumerSecret";
+    return _k;
+  }
+
+  Future request(String method, String endpoint, [Map data]) async{
     var url = this.getUrl(endpoint);
+    var _creds = _composeKeys();
 
-    var t = composeQueryString(data);
+    var t = (data != null) ? "&${composeQueryString(data)}" : "";
 
-    var _rq = url + "?" + t;
+    var _rq = url + "?" + _creds + t;
 
     var requestUrl = Uri.encodeFull(_rq);
     print(requestUrl);
 
-    var basicAuthHeader = base64.encode(utf8.encode("${this.consumerKey}:${this.consumerSecret}"));
-
     var httpClient = new HttpClient();
     var request = await httpClient.openUrl(method, Uri.parse(requestUrl));
-    request.headers.contentType = new ContentType("application", "json", charset: "utf-8");
-    request.headers.set(HttpHeaders.CACHE_CONTROL, 'no-cache');
-    request.headers.set(HttpHeaders.AUTHORIZATION, 'Basic ' + basicAuthHeader);
+    request.headers.set(HttpHeaders.cacheControlHeader, 'no-cache');
     var response = await request.close();
     var responseBody = await response.transform(utf8.decoder).join();
     var dataResponse = await json.decode(responseBody);
@@ -154,19 +157,18 @@ class WooCommerceAPI{
   }
 
 
-  Future get(String endpoint, Map data){
+  Future get(String endpoint, [Map data]){
     return this.request("GET", endpoint, data);
   }
 
   Future post(String endpoint, Map data) async{
-    String _authHeader = authHeader();
-    var url = this.getUrl(endpoint);
+    var _creds = _composeKeys();
+    var url = this.getUrl(endpoint) + "?" + _creds;
 
     var client = new http.Client();
     var request = new http.Request('POST', Uri.parse(url));
-    request.headers[HttpHeaders.CONTENT_TYPE] = 'application/json; charset=utf-8';
-    request.headers[HttpHeaders.AUTHORIZATION] = "Basic $_authHeader";
-    request.headers[HttpHeaders.CACHE_CONTROL] = "no-cache";
+    request.headers[HttpHeaders.contentTypeHeader] = 'application/json; charset=utf-8';
+    request.headers[HttpHeaders.cacheControlHeader] = "no-cache";
     request.body = json.encode(data);
     var response = await client.send(request).then((res) => res.stream.bytesToString());
     var dataResponse = await json.decode(response);
@@ -174,14 +176,15 @@ class WooCommerceAPI{
   }
 
   Future put(String endpoint, Map data) async{
-    String _authHeader = authHeader();
-    var url = this.getUrl(endpoint);
+    // String _authHeader = authHeader();
+    var _creds = _composeKeys();
+    var url = this.getUrl(endpoint) + "?" + _creds;
 
     var client = new http.Client();
     var request = new http.Request('PUT', Uri.parse(url));
-    request.headers[HttpHeaders.CONTENT_TYPE] = 'application/json; charset=utf-8';
-    request.headers[HttpHeaders.AUTHORIZATION] = "Basic $_authHeader";
-    request.headers[HttpHeaders.CACHE_CONTROL] = "no-cache";
+    request.headers[HttpHeaders.contentTypeHeader] = 'application/json; charset=utf-8';
+    // request.headers[HttpHeaders.AUTHORIZATION] = "Basic $_authHeader";
+    request.headers[HttpHeaders.cacheControlHeader] = "no-cache";
     request.body = json.encode(data);
     var response = await client.send(request).then((res) => res.stream.bytesToString());
     var dataResponse = await json.decode(response);
@@ -190,7 +193,9 @@ class WooCommerceAPI{
 
   }
 
-  Future delete(String endpoint,{Map data}){
+  Future delete(String endpoint, [Map data]){
     return this.request("DELETE", endpoint, data);
   }
+
+  
 }
